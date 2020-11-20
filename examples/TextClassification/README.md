@@ -17,7 +17,7 @@ create an empty directory `model_store` and run the following command to start t
 
 ## Creating a new deployment
 
-This example uses the default TorchServe text handler to generate the mar file and inference.
+This example uses the default TorchServe text handler to generate the mar file.
 
 To create a new deployment, run the following command
 

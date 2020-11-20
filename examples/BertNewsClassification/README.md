@@ -100,34 +100,3 @@ If needed, version number can also be explicitly mentioned as a config variable.
 The deployed BERT model would predict the classification of the given news text and store the output in `output.json`. Run the following command to invoke prediction of our sample input (input.json)
 
 `mlflow deployments predict --name news_classification_test --target torchserve --input-path input.json  --output-path output.json`
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
