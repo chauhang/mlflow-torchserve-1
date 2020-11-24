@@ -5,6 +5,7 @@ from mlflow.utils import process
 
 @pytest.mark.usefixtures("start_torchserve")
 def test_mnist_example():
+    os.environ["MKL_THREADING_LAYER"] = "GNU"
     mnist_dir = "examples/MNIST"
     example_command = ["python", "mnist_model.py", "--max_epochs", "1"]
     process.exec_cmd(example_command, cwd=mnist_dir)
