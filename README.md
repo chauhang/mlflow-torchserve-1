@@ -19,6 +19,14 @@ Plugin package which is available in pypi and can be installed using
 ```bash
 pip install mlflow-torchserve
 ```
+##Installation from Source
+
+Plugin package could also be installed from source using the following commands
+```
+python setup.py build
+python setup.py install
+```
+
 ## What does it do
 Installing this package uses python's entrypoint mechanism to register the plugin into MLflow's
 plugin registry. This registry will be invoked each time you launch MLflow script or command line
@@ -43,7 +51,7 @@ plugin.create_deployment(name=<deployment name>, model_uri=<model uri>, config={
 ```
 
 ### Update deployment
-Update API is used to increase the number of workers or set a model as default version.
+Update API can used to modify the configuration parameters such as number of workers, version etc., of an already deployed model.
 TorchServe will make sure the user experience is seamless while changing the model in a live environment.
 
 ##### CLI
@@ -70,7 +78,7 @@ plugin.delete_deployment(name=<deployment name / version number>)
 ```
 
 ### List all deployments
-List the names of all the deployed models,which can be subsequently used in other APIs. For example the get deployment API can use it to get more details about a particular deployment.
+Lists the names of all the models deployed on the configured TorchServe.
 
 ##### CLI
 ```shell script
@@ -83,7 +91,8 @@ plugin.list_deployments()
 ```
 
 ### Get deployment details
-By default, Get API fetches all the versions of the deployed model.
+Get API fetches the details of the deployed model. By default, Get API fetches all the versions of the 
+deployed model.
 
 ##### CLI
 ```shell script
@@ -98,8 +107,8 @@ plugin.get_deployment(name=<deployment name>)
 ### Run Prediction on deployed model
 Predict API enables to run prediction on the deployed model.
 
-CLI takes the json file path as input. However, input to the python plugin can be one among the three types
-DataFrame, Tensor or a json String.
+For the prediction inputs, DataFrame, Tensor and Json formats are supported. The python API supports all of these
+ three formats. When invoked via command line, one needs to pass the json file path that contains the inputs.
 
 ##### CLI
 ```shell script
