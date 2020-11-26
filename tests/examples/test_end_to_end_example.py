@@ -8,7 +8,7 @@ def test_mnist_example():
     os.environ["MKL_THREADING_LAYER"] = "GNU"
     mnist_dir = "examples/MNIST"
     example_command = ["python", "mnist_model.py", "--max_epochs", "1"]
-    process.exec_cmd(example_command, cwd=mnist_dir)
+    process.exec_cmd(example_command, cwd=mnist_dir, shell=True)
     create_deployment_command = [
         "python",
         "create_deployment.py",
@@ -17,7 +17,7 @@ def test_mnist_example():
         "--export_path",
         os.path.join(os.getcwd(), "model_store"),
     ]
-    process.exec_cmd(create_deployment_command, cwd=mnist_dir)
+    process.exec_cmd(create_deployment_command, cwd=mnist_dir, shell=True)
 
     predict_command = ["python", "predict.py", "--deployment_name", "mnist_test"]
     res = process.exec_cmd(predict_command, cwd=mnist_dir)
