@@ -36,7 +36,7 @@ By default,  the script exports the model file as `bert_pytorch.pt` and generate
 Command: 
 ```
 python news_classifier.py \
-    --epochs 5 \
+    --max_epochs 5 \
     --num-samples 50000 \
     --model-save-path /home/ubuntu/mlflow-torchserve/examples/BertNewsClassification/models
 ```
