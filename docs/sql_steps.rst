@@ -23,7 +23,7 @@ Steps to Install MLflow with SQL/S3 backend
 
 8. Provide the name to the role and create the role
 
-.. figure:: _static/images/create_role1.png
+.. figure:: _static/images/create_role_1.png
 
 9. While Configuring Instance Details, now select the newly created IAM role(IAM role).
 
@@ -35,18 +35,18 @@ Steps to Install MLflow with SQL/S3 backend
 
 12. Launch the EC2 instance.
 
-13. [Install Anaconda](https://www.digitalocean.com/community/tutorials/how-to-install-anaconda-on-ubuntu-18-04-quickstart) in the machine.
+13. `Install Anaconda <https://www.digitalocean.com/community/tutorials/how-to-install-anaconda-on-ubuntu-18-04-quickstart>`_ in the machine.
 
-14. [Install MLflow](https://www.mlflow.org/docs/latest/quickstart.html)
+14. `Install MLflow <https://www.mlflow.org/docs/latest/quickstart.html>`_
 
-15. [Install MySQL](https://dev.mysql.com/doc/mysql-installation-excerpt/8.0/en/windows-install-archive.html)
+15. `Install MySQL <https://dev.mysql.com/doc/mysql-installation-excerpt/8.0/en/windows-install-archive.html>`_
 
 16. Create a bucket in S3 (e.g mlflow_bucket)
 
 17. Inside the bucket create a folder (eg : “mlflow” ) which will be the artifact folder.
 
 18. Invoke the following to start set the MLflow server with S3/SQL backend \
-`mlflow server --backend-store-uri mysql+pymysql://root:strongpassword@db:3306/db --default-artifact-root s3://mlflow_bucket/mlflow/ — h 0.0.0.0 -p 5000`
+`mlflow server --backend-store-uri mysql+pymysql://root:strongpassword@db:3306/db --default-artifact-root s3://mlflow_bucket/mlflow/  -h 0.0.0.0 -p 5000`
 
 
-**Reference**: [https://towardsdatascience.com/deploy-mlflow-with-docker-compose-8059f16b6039](https://towardsdatascience.com/deploy-mlflow-with-docker-compose-8059f16b6039)
+**Reference**: - https://towardsdatascience.com/deploy-mlflow-with-docker-compose-8059f16b6039
