@@ -3,6 +3,7 @@ import pandas as pd
 import mlflow
 import argparse
 import os
+import pytorch_lightning as pl
 
 
 def model_training_hyperparameter_tuning(
@@ -40,16 +41,9 @@ def build_baseline_model(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--max_epochs",
-        default=2,
-        help="Describes the number of times a neural network has to be trained",
-    )
-    parser.add_argument(
-        "--mlflow_experiment_name",
-        default="Default",
-        help="Name of MLFLOW experiment in which results would be dumped",
-    )
+    parser = pl.Trainer.add_argparse_args(parent_parser=parser)
+
+    experiment_name = os.environ["MLFLOW_EXPERIMENT_NAME"]
     args = parser.parse_args()
     df = pd.read_csv("new_demand.csv")
     model_training_data = df[0 : int(len(df) * 0.70)]
@@ -58,6 +52,6 @@ if __name__ == "__main__":
     build_baseline_model(
         model_data=model_training_data,
         max_epochs=int(args.max_epochs),
-        mlflow_experiment_name=args.mlflow_experiment_name,
+        mlflow_experiment_name=experiment_name,
         params=params,
     )

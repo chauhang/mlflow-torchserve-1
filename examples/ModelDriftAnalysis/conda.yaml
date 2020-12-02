@@ -5,6 +5,7 @@ channels:
 dependencies:
 - python=3.8.2
 - pytorch>=1.6.0
+- cudatoolkit>=10.2
 - pip
 - pip:
   - mlflow
@@ -15,4 +16,5 @@ dependencies:
   - pandas
   - gorilla
   - ax-platform
+  - torchvision
 

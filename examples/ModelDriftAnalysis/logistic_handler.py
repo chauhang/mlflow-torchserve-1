@@ -1,17 +1,12 @@
 import logging
 import os
-import numpy as np
 import torch
 from torch.autograd import Variable
-from torch.utils.data import DataLoader
 
 from classifier import Classification
 from torch.nn import functional as F
 
 logger = logging.getLogger(__name__)
-
-
-### CLASS DEFINITION ###
 
 
 class LogisticHandler(object):
@@ -39,7 +34,6 @@ class LogisticHandler(object):
         if not os.path.isfile(model_def_path):
             raise RuntimeError("Missing the model definition file")
 
-        state_dict = torch.load(model_pt_path, map_location=self.device)
         self.model = Classification()
         self.model.state_dict()
         self.model.to(self.device)
@@ -105,8 +99,6 @@ class LogisticHandler(object):
         # result["result"] = inference_output
         # return result
 
-
-### CLASS INITIALIZATION ###
 
 _service = LogisticHandler()
 

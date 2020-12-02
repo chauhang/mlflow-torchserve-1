@@ -4,14 +4,14 @@ import os
 
 
 def set_environment_variables(model_file, handler_file):
-    # os.environ['version']=version
-    os.environ["model_file"] = model_file
+    #os.environ['version']=version
+    os.environ["MODEL_FILE"] = model_file
     os.environ["HANDLER"] = handler_file
 
 
 def create_deployment_and_predict(dataframe, dataframe_label, dataframe_datecolumn_name, model_uri):
     plugin = get_deploy_client("torchserve")
-    config = {"MODEL_FILE": os.environ["model_file"], "HANDLER": os.environ["HANDLER"]}
+    config = {"MODEL_FILE": os.environ["MODEL_FILE"], "HANDLER": os.environ["HANDLER"]}
 
     plugin.create_deployment(name="test", model_uri=model_uri, config=config)
 

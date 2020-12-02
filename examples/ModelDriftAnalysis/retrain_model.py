@@ -6,7 +6,7 @@ import argparse
 from mlflow.tracking import MlflowClient
 from mlflow.entities import ViewType
 import os
-
+import pytorch_lightning as pl
 
 def model_training_hyperparameter_tuning(df, max_epochs, experiment_name, total_trials):
 
@@ -46,7 +46,7 @@ def model_training_hyperparameter_tuning(df, max_epochs, experiment_name, total_
 
     for i in range(total_trials):
 
-        with mlflow.start_run(nested=True, run_name="Trial " + str(i)) as child_run:
+        with mlflow.start_run(nested=True, run_name="Trial " + str(i)):
 
             parameters, trial_index = ax_client.get_next_trial()
             dm = classifier.DataModule(df)
@@ -71,11 +71,8 @@ def model_training_hyperparameter_tuning(df, max_epochs, experiment_name, total_
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--max_epochs",
-        default=2,
-        help="Describes the number of times a neural network has to be trained",
-    )
+    parser = pl.Trainer.add_argparse_args(parent_parser=parser)
+
     parser.add_argument(
         "--mlflow_experiment_name",
         help="Name of MLFLOW experiment in which results would be dumped",
