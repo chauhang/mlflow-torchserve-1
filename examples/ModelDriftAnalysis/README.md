@@ -13,7 +13,7 @@ When the accuracy falls below a threshold level the model is re-trained.For ever
 This data was collected from the Australian New South Wales Electricity Market. In this market, prices are not fixed and are affected by demand and supply of the market.
 They are set every five minutes. The ELEC dataset contains 45, 312 instances.The class label identifies the change of the price relative to a moving average of the last 24 hours(namely UP and Down). 
 You can download the dataset [here](https://sourceforge.net/projects/moa-datastream/files/Datasets/Classification/elecNormNew.arff.zip/download/).
-To select the best performing model we have used the Ax hyperparameter optimization, which will help us detect the best set of parameters to bring the best performance.
+To select the best performing model we have used the [Ax](https://ax.dev/docs/why-ax.html) hyperparameter optimization, which will help us detect the best set of parameters to bring the best performance.
 The autolog function is incorporated to log all the standard parameters, metrics and artifacts in MLflow, associated with each run of the model. 
 
 
