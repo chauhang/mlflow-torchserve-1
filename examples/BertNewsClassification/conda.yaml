@@ -13,3 +13,4 @@ dependencies:
   - transformers
   - torchtext
   - pandas
+  - torchvision
