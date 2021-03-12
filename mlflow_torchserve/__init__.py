@@ -29,7 +29,7 @@ class TorchServePlugin(BaseDeploymentClient):
         """
         super(TorchServePlugin, self).__init__(target_uri=uri)
         self.server_config = Config()
-        self.inference_api, self.management_api = self.__get_torch_serve_port()
+        self.inference_api, self.management_api, self.export_url = self.__get_torch_serve_port()
         self.default_limit = 100
 
     def __get_torch_serve_port(self):
@@ -39,6 +39,7 @@ class TorchServePlugin(BaseDeploymentClient):
         config_properties = self.server_config["config_properties"]
         inference_port = "http://localhost:8080"
         management_port = "http://localhost:8081"
+        export_url = None
         address_strings = self.server_config["torchserve_address_names"]
         if config_properties is not None and os.path.exists(config_properties):
             with open(config_properties, "r") as f:
@@ -49,7 +50,9 @@ class TorchServePlugin(BaseDeploymentClient):
                         inference_port = name[1]
                     if name[0] == address_strings[1] and name[1] is not None:
                         management_port = name[1]
-        return inference_port, management_port
+                    if name[0] == address_strings[2] and name[1] is not None:
+                        export_url = name[1]
+        return inference_port, management_port, export_url
 
     def __validate_mandatory_arguments(self):
         """
@@ -104,6 +107,13 @@ class TorchServePlugin(BaseDeploymentClient):
             model_uri=model_uri,
         )
 
+        if "localhost" not in self.management_api:
+            print(
+                "Mar file {mar_file} generated successfully. Host the mar file as public http url"
+                " and register the model using register_model api".format(mar_file=mar_file_path)
+            )
+            return {"name": name, "flavor": flavor}
+
         config_registration = {
             key: val
             for key, val in config.items()
@@ -118,7 +128,7 @@ class TorchServePlugin(BaseDeploymentClient):
             ]
         }
 
-        self.__register_model(
+        self.register_model(
             mar_file_path=mar_file_path,
             config=config_registration,
         )
@@ -295,49 +305,44 @@ class TorchServePlugin(BaseDeploymentClient):
         valid_file_suffixes = [".pt", ".pth"]
         extra_files_list = []
         req_file_path = None
+        model_path = None
 
         if not os.path.isfile(model_uri):
             path = Path(_download_artifact_from_uri(model_uri))
-            model_config = path / "MLmodel"
-            if not model_config.exists():
-                raise Exception(
-                    "Failed to find MLmodel configuration within "
-                    "the specified model's root directory."
-                )
-            else:
-                model_path = None
-                if path.suffix in valid_file_suffixes:
-                    model_uri = path
-                else:
-                    for root, dirs, files in os.walk(path, topdown=False):
-                        for name in files:
-                            if Path(name).suffix in valid_file_suffixes:
-                                model_path = os.path.join(root, name)
 
-                    model = Model.load(model_config)
-                    model_json = json.loads(Model.to_json(model))
+            # Derive model.pth or state_dict.pth file path
+            for root, dirs, files in os.walk(path, topdown=False):
+                for name in files:
+                    if Path(name).suffix in valid_file_suffixes:
+                        model_path = os.path.join(root, name)
 
-                    try:
-                        if model_json["flavors"]["pytorch"]["extra_files"]:
-                            for extra_file in model_json["flavors"]["pytorch"]["extra_files"]:
-                                extra_files_list.append(os.path.join(path, extra_file["path"]))
-                    except KeyError:
-                        pass
+            # For eager mode models, derive extra files, requirement files
+            if "state_dict.pth" not in model_path:
+                model_config = path / "MLmodel"
+                model = Model.load(model_config)
+                model_json = json.loads(Model.to_json(model))
 
-                    try:
-                        if model_json["flavors"]["pytorch"]["requirements_file"]:
-                            req_file_path = os.path.join(
-                                path, model_json["flavors"]["pytorch"]["requirements_file"]["path"]
-                            )
-                    except KeyError:
-                        pass
+                try:
+                    if model_json["flavors"]["pytorch"]["extra_files"]:
+                        for extra_file in model_json["flavors"]["pytorch"]["extra_files"]:
+                            extra_files_list.append(os.path.join(path, extra_file["path"]))
+                except KeyError:
+                    pass
 
-                    if model_path is None:
-                        raise RuntimeError(
-                            "Model file does not have a valid suffix. Expected to be one of "
-                            + ", ".join(valid_file_suffixes)
+                try:
+                    if model_json["flavors"]["pytorch"]["requirements_file"]:
+                        req_file_path = os.path.join(
+                            path, model_json["flavors"]["pytorch"]["requirements_file"]["path"]
                         )
-                    model_uri = model_path
+                except KeyError:
+                    pass
+
+            if model_path is None:
+                raise RuntimeError(
+                    "Model file does not have a valid suffix. Expected to be one of "
+                    + ", ".join(valid_file_suffixes)
+                )
+            model_uri = model_path
 
         export_path = self.server_config["export_path"]
         if export_path:
@@ -396,10 +401,12 @@ class TorchServePlugin(BaseDeploymentClient):
 
         return mar_file
 
-    def __register_model(self, mar_file_path, config=None):
+    def register_model(self, mar_file_path, config=None):
         """
         Register the model using the mar file that has been generated by the archiver
         """
+        if "localhost" not in self.management_api:
+            mar_file_path = os.path.join(self.export_url, mar_file_path)
         query_path = mar_file_path
         if config:
             for key in config:

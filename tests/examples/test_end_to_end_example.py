@@ -3,6 +3,7 @@ import os
 from mlflow.utils import process
 
 
+@pytest.mark.skip(reason="Skip until torchvision MNIST fix is available")
 @pytest.mark.usefixtures("start_torchserve")
 def test_mnist_example():
     os.environ["MKL_THREADING_LAYER"] = "GNU"
@@ -11,7 +12,7 @@ def test_mnist_example():
     example_command = ["python", "mnist_model.py", "--max_epochs", "1"]
     process.exec_cmd(example_command, cwd=mnist_dir)
 
-    assert os.path.exists(os.path.join(mnist_dir, "model.pth"))
+    assert os.path.exists(os.path.join(mnist_dir, "models", "state_dict.pth"))
     create_deployment_command = [
         "python",
         "create_deployment.py",

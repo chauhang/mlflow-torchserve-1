@@ -21,8 +21,7 @@ import argparse
 import os
 from tqdm import tqdm
 import requests
-from torchtext.utils import download_from_url, extract_archive
-from torchtext.datasets.text_classification import URLS
+import torchtext.datasets as td
 import mlflow.pytorch
 
 class_names = ["World", "Sports", "Business", "Sci/Tech"]
@@ -104,7 +103,7 @@ class NewsClassifier(nn.Module):
 
         :return: output - label for the input text
         """
-        _, pooled_output = self.bert(input_ids=input_ids, attention_mask=attention_mask)
+        pooled_output = self.bert(input_ids=input_ids, attention_mask=attention_mask).pooler_output
         output = F.relu(self.fc1(pooled_output))
         output = self.drop(output)
         output = self.out(output)
@@ -137,12 +136,13 @@ class NewsClassifier(nn.Module):
         """
         Creates train, valid and test dataloaders from the csv data
         """
-        dataset_tar = download_from_url(URLS["AG_NEWS"], root=".data")
-        extracted_files = extract_archive(dataset_tar)
+        td.AG_NEWS(root="data", split=("train", "test"))
+        extracted_files = os.listdir("data")
 
+        train_csv_path = None
         for fname in extracted_files:
             if fname.endswith("train.csv"):
-                train_csv_path = fname
+                train_csv_path = os.path.join(os.getcwd(), "data", fname)
 
         self.df = pd.read_csv(train_csv_path)
 
@@ -258,7 +258,7 @@ class NewsClassifier(nn.Module):
             self.optimizer.zero_grad()
 
         return (
-            correct_predictions.double() / len(self.train_data_loader),
+            correct_predictions.double() / len(self.train_data_loader) / self.BATCH_SIZE,
             np.mean(losses),
         )
 
@@ -289,7 +289,7 @@ class NewsClassifier(nn.Module):
                 correct_predictions += torch.sum(preds == targets)
                 losses.append(loss.item())
 
-        return correct_predictions.double() / len(data_loader), np.mean(losses)
+        return correct_predictions.double() / len(data_loader) / self.BATCH_SIZE, np.mean(losses)
 
     def get_predictions(self, model, data_loader):
 
