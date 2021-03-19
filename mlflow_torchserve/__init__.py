@@ -117,6 +117,7 @@ class TorchServePlugin(BaseDeploymentClient):
         config_registration = {
             key: val
             for key, val in config.items()
+            print("Value of config....",key, value)
             if key.upper()
             not in [
                 "VERSION",
@@ -332,8 +333,6 @@ class TorchServePlugin(BaseDeploymentClient):
             )
 
         return resp.text
-
-
 
     def __generate_mar_file(
         self, model_name, version, model_file, handler, requirements_file, extra_files, model_uri
