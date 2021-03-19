@@ -193,10 +193,12 @@ def test_predict_exception():
     with pytest.raises(Exception, match="Unable to parse input json string"):
         client.predict(f_dummy, "sample")
 
+
 def test_explain_exception():
     client = deployments.get_deploy_client(f_target)
     with pytest.raises(Exception, match="Unable to parse input json string"):
         client.explain(f_dummy, "sample")
+
 
 def test_explain_name_exception():
     with open(sample_input_file) as fp:
@@ -204,6 +206,7 @@ def test_explain_name_exception():
     client = deployments.get_deploy_client(f_target)
     with pytest.raises(Exception, match="Unable to infer the results for the name %s" % f_dummy):
         client.explain(f_dummy, data)
+
 
 def test_predict_name_exception():
     with open(sample_input_file) as fp:
