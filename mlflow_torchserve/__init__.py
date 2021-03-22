@@ -14,8 +14,6 @@ from mlflow_torchserve.config import Config
 from mlflow.deployments import BaseDeploymentClient, get_deploy_client
 from mlflow.tracking.artifact_utils import _download_artifact_from_uri
 from mlflow.models.model import Model
-from SignatureValidator import SignatureValidator
-
 
 _logger = logging.getLogger(__name__)
 
@@ -257,41 +255,6 @@ class TorchServePlugin(BaseDeploymentClient):
                 % (name, resp.status_code, resp.content)
             )
         return {"deploy": resp.text}
-
-
-    def validate_signature(self, input_data, model_uri):
-        print("Model URI received as : {}".format(model_uri))
-        path = Path(_download_artifact_from_uri(model_uri))
-        model_config = path / "MLmodel"
-        print("MLModel path : {}".format(model_config))
-        if not os.path.exists(model_config):
-            raise Exception("MLModel file not present. Unable to validate signature")
-
-        model = Model.load(model_config)
-        model_json = json.loads(Model.to_json(model))
-
-        print("MLModel File: {}".format(model_json))
-
-        if "signature" not in model_json.keys():
-            raise Exception("Model Signature not found")
-
-        # input_schema = json.loads(model_json["signature"]["inputs"])
-        input_schema = model.get_input_schema()
-        # input_schema = ast.literal_eval(input_schema)
-        model_signature_output = json.loads(model_json["signature"]["outputs"])
-
-        print("Input Schema and type: ", input_schema, type(input_schema))
-        print("Model Signature output: {}".format(model_signature_output))
-
-        print("Input data is : {}".format(input_data))
-        print("Input data type is : {}".format(type(input_data)))
-
-        # ModelSignature(input_data=input_data, input_schema=model_signature_input).validate_column_count()
-
-        # model_signature_input = Model(signature=model_json["signature"]).get_input_schema()
-        if input_schema is not None:
-            data = SignatureValidator(model_meta=model)._enforce_schema(input_data, input_schema)
-
 
     def predict(self, deployment_name, df):
         """
