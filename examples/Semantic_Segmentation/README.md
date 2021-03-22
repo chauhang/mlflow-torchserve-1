@@ -48,10 +48,3 @@ torchserve --start --model-store model_store --ts-config config.properties"`
 
 ## Running explanations based on deployed model
 	curl http://127.0.0.1:8080/explanations/segmentation -T data/input_1.json
-
-
-Run the following command to invoke prediction of our sample input, whose output is stored in output.json file.
-
-`mlflow deployments predict --name iris_test --target torchserve --input-path sample.json  --output-path output.json`
-
-The model will classify the flower species based on the input test data as one among the three types and store it in `output.json`
