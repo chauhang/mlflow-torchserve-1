@@ -28,7 +28,8 @@ def clean_envs_and_cache():
         # ("MNIST", ["-P", "max_epochs=1"]),
         ("IrisClassificationTorchScript", ["-P", "max_epochs=10"]),
         ("BertNewsClassification", ["-P", "max_epochs=1", "-P", "num_samples=100"]),
-        ("E2EBert", ["-P", "max_epochs=1", "-P", "num_samples=100"]),
+        ("E2EBert", ["-P", "max_epochs=1", "-P", "num_samples=100"])
+        ("Semantic_Segmentation", ["-P", "target=6", "-P", "img_url=https://farm8.staticflickr.com/7301/8862358875_eecba9fb10_z.jpg"]),
     ],
 )
 def test_mlflow_run_example(directory, params):
