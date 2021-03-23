@@ -28,7 +28,6 @@ def predict(parser_args):
     for column in df.columns:
         df[column].astype("double")
 
-    plugin.validate_signature(input_data=df, model_uri="model")
     prediction = plugin.predict(deployment_name=parser_args["deployment_name"], df=input_data)
     print("Prediction Result {}".format(prediction))
 

@@ -57,7 +57,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--extra_files",
         type=str,
-        default="index_to_name.json",
+        default="index_to_name.json,model/MLmodel",
         help="List of extra files",
     )
 

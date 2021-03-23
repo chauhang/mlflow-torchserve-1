@@ -3,8 +3,11 @@ import logging
 
 import numpy as np
 import torch
+import pandas as pd
 import os
+import json
 from ts.torch_handler.base_handler import BaseHandler
+from mlflow.models.model import Model
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +20,7 @@ class IRISClassifierHandler(BaseHandler):
 
     def __init__(self):
         super(IRISClassifierHandler, self).__init__()
+        self.mlmodel = None
 
     def preprocess(self, data):
         """
@@ -26,14 +30,23 @@ class IRISClassifierHandler(BaseHandler):
 
         :return: output - Preprocessed input
         """
+        from mlflow_torchserve.SignatureValidator import SignatureValidator
+        data = json.loads(data[0]["data"].decode("utf-8"))
+        df = pd.DataFrame(data)
 
-        # input_data_str = data[0].get("data")
-        # if input_data_str is None:
-        #     input_data_str = data[0].get("body")
-        #
-        # input_data = input_data_str.decode("utf-8")
-        # input_tensor = torch.Tensor(ast.literal_eval(input_data))
-        return data
+        SignatureValidator(model_meta=self.mlmodel)._enforce_schema(df, self.mlmodel.get_input_schema())
+
+        input_tensor = torch.Tensor(list(df.iloc[0]))
+        return input_tensor
+
+    def extract_signature(self, mlmodel_file):
+        self.mlmodel = Model.load(mlmodel_file)
+        model_json = json.loads(Model.to_json(self.mlmodel))
+
+        print("MLModel File: {}".format(model_json))
+
+        if "signature" not in model_json.keys():
+            raise Exception("Model Signature not found")
 
     def initialize(self, ctx):
         """
@@ -54,6 +67,9 @@ class IRISClassifierHandler(BaseHandler):
         logger.debug("Model file %s loaded successfully", model_pt_path)
 
         self.mapping_file_path = os.path.join(model_dir, "index_to_name.json")
+        mlmodel_file = os.path.join(model_dir, "MLmodel")
+
+        self.extract_signature(mlmodel_file=mlmodel_file)
 
         self.initialized = True
 
