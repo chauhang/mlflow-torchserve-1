@@ -2,7 +2,6 @@ import os
 import json
 import torch
 import ast
-import pandas as pd
 from argparse import ArgumentParser
 
 from mlflow.deployments import get_deploy_client

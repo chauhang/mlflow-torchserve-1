@@ -48,8 +48,10 @@ class SignatureValidator:
                     )
                 )
 
-        # NB: Comparison of pandas and numpy data type fails when numpy data type is on the left hand
-        # side of the comparison operator. It works, however, if pandas type is on the left hand side.
+        # NB: Comparison of pandas and numpy data type fails
+        # when numpy data type is on the left hand
+        # side of the comparison operator.
+        # It works, however, if pandas type is on the left hand side.
         # That is because pandas is aware of numpy.
         if t.to_pandas() == values.dtype or t.to_numpy() == values.dtype:
             # The types are already compatible => conversion is not necessary.
@@ -92,7 +94,8 @@ class SignatureValidator:
                     " Hint: the type mismatch is likely caused by missing values. "
                     "Integer columns in python can not represent missing values and are therefore "
                     "encoded as floats. The best way to avoid this problem is to infer the model "
-                    "schema based on a realistic data sample (training dataset) that includes missing "
+                    "schema based on a realistic data sample"
+                    " (training dataset) that includes missing "
                     "values. Alternatively, you can declare integer columns as doubles (float64) "
                     "whenever these columns may have missing values. See `Handling Integers With "
                     "Missing Values <https://www.mlflow.org/docs/latest/models.html#"
@@ -191,8 +194,9 @@ class SignatureValidator:
         """
         Enforces the provided input matches the model's input schema,
 
-        For signatures with input names, we check there are no missing inputs and reorder the inputs to
-        match the ordering declared in schema if necessary. Any extra columns are ignored.
+        For signatures with input names, we check there are no missing inputs and reorder
+        the inputs to match the ordering declared in schema if necessary.
+        Any extra columns are ignored.
 
         For column-based signatures, we make sure the types of the input match the type specified in
         the schema or if it can be safely converted to match the input schema.
