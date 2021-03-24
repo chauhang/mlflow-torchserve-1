@@ -7,10 +7,12 @@ from argparse import ArgumentParser
 
 from mlflow.deployments import get_deploy_client
 
+
 def convert_input_to_tensor(data):
     data = json.loads(data).get("data")
     input_tensor = torch.Tensor(ast.literal_eval(data[0]))
     return input_tensor
+
 
 def predict(parser_args):
     plugin = get_deploy_client(parser_args["target"])
@@ -30,7 +32,6 @@ def predict(parser_args):
 
     prediction = plugin.predict(deployment_name=parser_args["deployment_name"], df=input_data)
     print("Prediction Result {}".format(prediction))
-
 
 
 if __name__ == "__main__":

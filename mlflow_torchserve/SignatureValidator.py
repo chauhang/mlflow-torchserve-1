@@ -6,7 +6,6 @@ from mlflow.types.utils import clean_tensor_type
 
 
 class SignatureValidator:
-
     def __init__(self, model_meta):
         self._model_meta = model_meta
 
@@ -44,8 +43,9 @@ class SignatureValidator:
                 return values.astype(t.to_pandas(), errors="raise")
             except ValueError:
                 raise MlflowException(
-                    "Failed to convert column {0} from type {1} to {2}.".format(name, values.dtype,
-                                                                                t)
+                    "Failed to convert column {0} from type {1} to {2}.".format(
+                        name, values.dtype, t
+                    )
                 )
 
         # NB: Comparison of pandas and numpy data type fails when numpy data type is on the left hand
@@ -83,10 +83,10 @@ class SignatureValidator:
 
             hint = ""
             if (
-                    values.dtype == np.float64
-                    and numpy_type.kind in ("i", "u")
-                    and values.hasnans
-                    and all_ints(values)
+                values.dtype == np.float64
+                and numpy_type.kind in ("i", "u")
+                and values.hasnans
+                and all_ints(values)
             ):
                 hint = (
                     " Hint: the type mismatch is likely caused by missing values. "
@@ -159,7 +159,9 @@ class SignatureValidator:
                                 type(pfInput[col_name])
                             )
                         )
-                    new_pfInput[col_name] = self._enforce_tensor_spec(pfInput[col_name], tensor_spec)
+                    new_pfInput[col_name] = self._enforce_tensor_spec(
+                        pfInput[col_name], tensor_spec
+                    )
             elif isinstance(pfInput, pandas.DataFrame):
                 new_pfInput = dict()
                 for col_name, tensor_spec in zip(input_schema.input_names(), input_schema.inputs):

@@ -31,10 +31,13 @@ class IRISClassifierHandler(BaseHandler):
         :return: output - Preprocessed input
         """
         from mlflow_torchserve.SignatureValidator import SignatureValidator
+
         data = json.loads(data[0]["data"].decode("utf-8"))
         df = pd.DataFrame(data)
 
-        SignatureValidator(model_meta=self.mlmodel)._enforce_schema(df, self.mlmodel.get_input_schema())
+        SignatureValidator(model_meta=self.mlmodel)._enforce_schema(
+            df, self.mlmodel.get_input_schema()
+        )
 
         input_tensor = torch.Tensor(list(df.iloc[0]))
         return input_tensor

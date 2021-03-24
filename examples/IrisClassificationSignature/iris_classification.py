@@ -218,12 +218,14 @@ if __name__ == "__main__":
     trainer.fit(model, dm)
     trainer.test()
 
-    input_schema = Schema([
-        ColSpec("double", "sepal length (cm)"),
-        ColSpec("double", "sepal width (cm)"),
-        ColSpec("double", "petal length (cm)"),
-        ColSpec("double", "petal width (cm)"),
-    ])
+    input_schema = Schema(
+        [
+            ColSpec("double", "sepal length (cm)"),
+            ColSpec("double", "sepal width (cm)"),
+            ColSpec("double", "petal length (cm)"),
+            ColSpec("double", "petal width (cm)"),
+        ]
+    )
     output_schema = Schema([ColSpec("long")])
     signature = ModelSignature(inputs=input_schema, outputs=output_schema)
     with mlflow.start_run():
