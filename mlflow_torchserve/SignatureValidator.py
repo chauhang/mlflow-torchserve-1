@@ -208,10 +208,10 @@ class SignatureValidator:
                         " input. There was an error casting the input data to a DataFrame:"
                         " {0}".format(str(e))
                     )
-            # if not isinstance(pfInput, pandas.DataFrame):
-            #     raise MlflowException(
-            #         "Expected input to be DataFrame or list. Found: %s" % type(pfInput).__name__
-            #     )
+            if not isinstance(pfInput, pandas.DataFrame):
+                raise MlflowException(
+                    "Expected input to be DataFrame or list. Found: %s" % type(pfInput).__name__
+                )
 
         if input_schema.has_input_names():
             # make sure there are no missing columns

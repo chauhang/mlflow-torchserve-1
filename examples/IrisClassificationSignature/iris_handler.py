@@ -43,8 +43,6 @@ class IRISClassifierHandler(BaseHandler):
         self.mlmodel = Model.load(mlmodel_file)
         model_json = json.loads(Model.to_json(self.mlmodel))
 
-        print("MLModel File: {}".format(model_json))
-
         if "signature" not in model_json.keys():
             raise Exception("Model Signature not found")
 
@@ -66,7 +64,10 @@ class IRISClassifierHandler(BaseHandler):
 
         logger.debug("Model file %s loaded successfully", model_pt_path)
 
-        self.mapping_file_path = os.path.join(model_dir, "index_to_name.json")
+        mapping_file_path = os.path.join(model_dir, "index_to_name.json")
+        if os.path.exists(mapping_file_path):
+            with open(mapping_file_path) as fp:
+                self.mapping = json.load(fp)
         mlmodel_file = os.path.join(model_dir, "MLmodel")
 
         self.extract_signature(mlmodel_file=mlmodel_file)
