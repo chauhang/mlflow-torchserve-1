@@ -333,8 +333,6 @@ class TorchServePlugin(BaseDeploymentClient):
 
         return resp.text
 
-
-
     def __generate_mar_file(
         self, model_name, version, model_file, handler, requirements_file, extra_files, model_uri
     ):
