@@ -123,20 +123,19 @@ def test_get_cli_success(deployment_name):
 @pytest.mark.parametrize("deployment_name", [f_deployment_name_version, f_deployment_id])
 def test_predict_cli_success(deployment_name):
     runner = CliRunner()
-    res = runner.invoke(
+    runner.invoke(
         cli.predict,
         ["--name", deployment_name, "--target", f_target, "--input-path", sample_input_file],
     )
-    
+
 
 @pytest.mark.parametrize("deployment_name", [f_deployment_name_version, f_deployment_id])
 def test_explain_cli_success(deployment_name):
     runner = CliRunner()
-    res = runner.invoke(
+    runner.invoke(
         cli.explain,
         ["--name", deployment_name, "--target", f_target, "--input-path", sample_input_file],
     )
-
 
 
 @pytest.mark.parametrize("deployment_name", [f_deployment_id + "/1.0", f_deployment_name_version])
