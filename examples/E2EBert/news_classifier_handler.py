@@ -9,8 +9,10 @@ from transformers import BertForSequenceClassification, BertConfig
 from captum.attr import IntegratedGradients
 from captum.attr import InterpretableEmbeddingBase, TokenReferenceBase
 from captum.attr import visualization
-from captum.attr import configure_interpretable_embedding_layer, \
-    remove_interpretable_embedding_layer
+from captum.attr import (
+    configure_interpretable_embedding_layer,
+    remove_interpretable_embedding_layer,
+)
 import torch.nn as nn
 import json
 import logging
@@ -22,7 +24,10 @@ from ts.torch_handler.base_handler import BaseHandler
 from captum.attr import IntegratedGradients
 from captum.attr import InterpretableEmbeddingBase, TokenReferenceBase
 from captum.attr import visualization
-from captum.attr import configure_interpretable_embedding_layer, remove_interpretable_embedding_layer
+from captum.attr import (
+    configure_interpretable_embedding_layer,
+    remove_interpretable_embedding_layer,
+)
 from news_classifier import BertNewsClassifier
 import torch.nn.functional as F
 import torch.nn as nn
@@ -132,7 +137,6 @@ class NewsClassifierHandler(BaseHandler):
 
         return inference_output
 
-
     def explain_initialize(self):
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -152,22 +156,34 @@ class NewsClassifierHandler(BaseHandler):
         model.eval()
         tokenizer = BertTokenizer(VOCAB_FILE)
 
-    def add_attributions_to_visualizer(self, attributions, tokens, pred_prob, pred_class, true_class,
-                                       attr_class, delta, vis_data_records):
+    def add_attributions_to_visualizer(
+        self,
+        attributions,
+        tokens,
+        pred_prob,
+        pred_class,
+        true_class,
+        attr_class,
+        delta,
+        vis_data_records,
+    ):
         attributions = attributions.sum(dim=2).squeeze(0)
         attributions = attributions / torch.norm(attributions)
         attributions = attributions.detach().numpy()
 
         # storing couple samples in an array for visualization purposes
-        vis_data_records.append(visualization.VisualizationDataRecord(
-            attributions,
-            pred_prob,
-            pred_class,
-            true_class,
-            attr_class,
-            attributions.sum(),
-            tokens,
-            delta))
+        vis_data_records.append(
+            visualization.VisualizationDataRecord(
+                attributions,
+                pred_prob,
+                pred_class,
+                true_class,
+                attr_class,
+                attributions.sum(),
+                tokens,
+                delta,
+            )
+        )
 
     def score_func(self, o):
         output = F.softmax(o, dim=1)
@@ -190,19 +206,18 @@ class NewsClassifierHandler(BaseHandler):
         input_embedding_test = model_wrapper.model.bert_model.embeddings(input_ids)
         preds = model_wrapper(input_embedding_test)
         out = np.argmax(preds.cpu().detach(), axis=1)
-        out = (out.item())
+        out = out.item()
         ig_1 = IntegratedGradients(model_wrapper)
-        attributions, delta = ig_1.attribute(input_embedding_test, n_steps=500,
-                                             return_convergence_delta=True, target=1)
+        attributions, delta = ig_1.attribute(
+            input_embedding_test, n_steps=500, return_convergence_delta=True, target=1
+        )
         tokens = tokenizer.convert_ids_to_tokens(input_ids[0].numpy().tolist())
         attr = attributions.detach().numpy()
         importances = np.mean(attr, axis=0)
         feature_imp_dict = {}
         for i in range(len(tokens)):
             feature_imp_dict[str(tokens[i])] = np.mean(importances[i])
-        self.add_attributions_to_visualizer(attributions, tokens, self.score_func(preds), out, 2, 1,
-                                       delta, vis_data_records_base)
+        self.add_attributions_to_visualizer(
+            attributions, tokens, self.score_func(preds), out, 2, 1, delta, vis_data_records_base
+        )
         return [feature_imp_dict]
-
-
-

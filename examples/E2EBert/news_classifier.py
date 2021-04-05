@@ -24,6 +24,8 @@ import torchtext.datasets as td
 from transformers import BertModel, BertTokenizer, AdamW
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+
 class AGNewsDataset(Dataset):
     def __init__(self, reviews, targets, tokenizer):
         """
@@ -38,6 +40,7 @@ class AGNewsDataset(Dataset):
         self.reviews = reviews
         self.targets = targets
         self.tokenizer = tokenizer
+
     def __len__(self):
         """
         :return: returns the number of datapoints in the dataframe
@@ -180,7 +183,7 @@ class BertDataModule(pl.LightningDataModule):
         )
         return parser
 
-    def create_data_loader(self, df, tokenizer,batch_size):
+    def create_data_loader(self, df, tokenizer, batch_size):
         """
         Generic data loader function
 
@@ -192,9 +195,7 @@ class BertDataModule(pl.LightningDataModule):
         :return: Returns the constructed dataloader
         """
         ds = AGNewsDataset(
-            reviews=df.description.to_numpy(),
-            targets=df.label.to_numpy(),
-            tokenizer=tokenizer
+            reviews=df.description.to_numpy(), targets=df.label.to_numpy(), tokenizer=tokenizer
         )
 
         return DataLoader(
@@ -254,13 +255,19 @@ class BertNewsClassifier(pl.LightningModule):
 
         self.args = kwargs
 
-    def compute_bert_outputs(self,model_bert, embedding_input, attention_mask=None, head_mask=None):
+    def compute_bert_outputs(
+        self, model_bert, embedding_input, attention_mask=None, head_mask=None
+    ):
         if attention_mask is None:
-            attention_mask = torch.ones(embedding_input.shape[0], embedding_input.shape[1]).to(embedding_input)
+            attention_mask = torch.ones(embedding_input.shape[0], embedding_input.shape[1]).to(
+                embedding_input
+            )
 
         extended_attention_mask = attention_mask.unsqueeze(1).unsqueeze(2)
 
-        extended_attention_mask = extended_attention_mask.to(dtype=next(model_bert.parameters()).dtype) # fp16 compatibility
+        extended_attention_mask = extended_attention_mask.to(
+            dtype=next(model_bert.parameters()).dtype
+        )  # fp16 compatibility
         extended_attention_mask = (1.0 - extended_attention_mask) * -10000.0
 
         if head_mask is not None:
@@ -268,28 +275,35 @@ class BertNewsClassifier(pl.LightningModule):
                 head_mask = head_mask.unsqueeze(0).unsqueeze(0).unsqueeze(-1).unsqueeze(-1)
                 head_mask = head_mask.expand(model_bert.config.num_hidden_layers, -1, -1, -1, -1)
             elif head_mask.dim() == 2:
-                head_mask = head_mask.unsqueeze(1).unsqueeze(-1).unsqueeze(-1)  # We can specify head_mask for each layer
-            head_mask = head_mask.to(dtype=next(model_bert.parameters()).dtype) # switch to fload if need + fp16 compatibility
+                head_mask = (
+                    head_mask.unsqueeze(1).unsqueeze(-1).unsqueeze(-1)
+                )  # We can specify head_mask for each layer
+            head_mask = head_mask.to(
+                dtype=next(model_bert.parameters()).dtype
+            )  # switch to fload if need + fp16 compatibility
         else:
             head_mask = [None] * model_bert.config.num_hidden_layers
 
-        encoder_outputs = model_bert.encoder(embedding_input,
-                                             extended_attention_mask,
-                                             head_mask=head_mask)
+        encoder_outputs = model_bert.encoder(
+            embedding_input, extended_attention_mask, head_mask=head_mask
+        )
         sequence_output = encoder_outputs[0]
         pooled_output = model_bert.pooler(sequence_output)
-        outputs = (sequence_output, pooled_output,) + encoder_outputs[1:]
+        outputs = (
+            sequence_output,
+            pooled_output,
+        ) + encoder_outputs[1:]
         return outputs
 
-    def forward(self, input_ids,attention_mask =None):
+    def forward(self, input_ids, attention_mask=None):
         """
         :param input_ids: Input data
         :param attention_maks: Attention mask value
 
         :return: output - Type of news for the given news snippet
         """
-        embedding_input= self.bert_model.embeddings(input_ids)
-        outputs =self.compute_bert_outputs(self.bert_model,embedding_input)
+        embedding_input = self.bert_model.embeddings(input_ids)
+        outputs = self.compute_bert_outputs(self.bert_model, embedding_input)
         pooled_output = outputs[1]
         output = F.relu(self.fc1(pooled_output))
         output = self.drop(output)
@@ -325,9 +339,9 @@ class BertNewsClassifier(pl.LightningModule):
         :return: output - Training loss
         """
         input_ids = train_batch["input_ids"]
-        input_ids= input_ids.to(device)
+        input_ids = input_ids.to(device)
         targets = train_batch["targets"]
-        targets=targets.to(device)
+        targets = targets.to(device)
         output = self.forward(input_ids)
         _, y_hat = torch.max(output, dim=1)
         loss = F.cross_entropy(output, targets)
