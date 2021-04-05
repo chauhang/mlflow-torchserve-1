@@ -85,7 +85,8 @@ class NewsClassifierHandler(BaseHandler):
 
     def inference(self, input_ids):
         """
-        Predict the class  for a review / sentence whether it is belong to world / sports / business /sci-tech
+        Predict the class  for a review / sentence whether
+        it is belong to world / sports / business /sci-tech
         :param encoding: Input encoding to be passed through the layers for prediction
 
         :return: output - predicted output
