@@ -1,18 +1,5 @@
-import json
-import logging
-import os
-import numpy as np
-import torch
-from transformers import BertTokenizer
-from ts.torch_handler.base_handler import BaseHandler
-from transformers import BertForSequenceClassification, BertConfig
 from captum.attr import IntegratedGradients
-from captum.attr import InterpretableEmbeddingBase, TokenReferenceBase
 from captum.attr import visualization
-from captum.attr import (
-    configure_interpretable_embedding_layer,
-    remove_interpretable_embedding_layer,
-)
 import torch.nn as nn
 import json
 import logging
@@ -22,19 +9,9 @@ import torch
 from transformers import BertTokenizer
 from ts.torch_handler.base_handler import BaseHandler
 from captum.attr import IntegratedGradients
-from captum.attr import InterpretableEmbeddingBase, TokenReferenceBase
 from captum.attr import visualization
-from captum.attr import (
-    configure_interpretable_embedding_layer,
-    remove_interpretable_embedding_layer,
-)
-from news_classifier import BertNewsClassifier
 import torch.nn.functional as F
-import torch.nn as nn
-import torch.nn as nn
-
 from news_classifier import BertNewsClassifier
-
 from wrapper import AGNewsmodelWrapper
 
 logger = logging.getLogger(__name__)
