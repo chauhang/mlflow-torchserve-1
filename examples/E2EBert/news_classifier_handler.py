@@ -1,6 +1,4 @@
 from captum.attr import IntegratedGradients
-from captum.attr import visualization
-import torch.nn as nn
 import json
 import logging
 import os
@@ -8,7 +6,6 @@ import numpy as np
 import torch
 from transformers import BertTokenizer
 from ts.torch_handler.base_handler import BaseHandler
-from captum.attr import IntegratedGradients
 from captum.attr import visualization
 import torch.nn.functional as F
 from news_classifier import BertNewsClassifier
@@ -113,25 +110,6 @@ class NewsClassifierHandler(BaseHandler):
             return [inference_output]
 
         return inference_output
-
-    def explain_initialize(self):
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-        model_dir = os.getcwd()
-        # Read model serialize/pt file
-        model_pt_path = os.path.join(model_dir, "state_dict.pth")
-        # Read model definition file
-        VOCAB_FILE = os.path.join(model_dir, "bert_base_uncased_vocab.txt")
-        if not os.path.isfile(VOCAB_FILE):
-            raise RuntimeError("Missing the vocab file")
-
-        class_mapping_file = os.path.join(model_dir, "class_mapping.json")
-        state_dict = torch.load(model_pt_path, map_location=device)
-        model = BertNewsClassifier()
-        model.load_state_dict(state_dict)
-        model.to(device)
-        model.eval()
-        tokenizer = BertTokenizer(VOCAB_FILE)
 
     def add_attributions_to_visualizer(
         self,
