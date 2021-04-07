@@ -23,11 +23,9 @@ from torch.utils.data import Dataset, DataLoader
 import torchtext.datasets as td
 from transformers import BertModel, BertTokenizer, AdamW
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
 
 class AGNewsDataset(Dataset):
-    def __init__(self, reviews, targets, tokenizer):
+    def __init__(self, reviews, targets, tokenizer, max_length):
         """
         Performs initialization of tokenizer
 
@@ -40,6 +38,7 @@ class AGNewsDataset(Dataset):
         self.reviews = reviews
         self.targets = targets
         self.tokenizer = tokenizer
+        self.max_length = max_length
 
     def __len__(self):
         """
@@ -58,24 +57,22 @@ class AGNewsDataset(Dataset):
         """
         review = str(self.reviews[item])
         target = self.targets[item]
-        encoded = self.tokenizer.encode_plus(
+
+        encoding = self.tokenizer.encode_plus(
             review,
             add_special_tokens=True,
-            max_length=100,
+            max_length=self.max_length,
             return_token_type_ids=False,
             padding="max_length",
             return_attention_mask=True,
             return_tensors="pt",
             truncation=True,
         )
-        # input_ids = torch.tensor([self.tokenizer.encode(
-        #     review,
-        #     add_special_tokens=True
-        # )])
 
         return {
             "review_text": review,
-            "input_ids": encoded["input_ids"].flatten(),
+            "input_ids": encoding["input_ids"].flatten(),
+            "attention_mask": encoding["attention_mask"].flatten(),
             "targets": torch.tensor(target, dtype=torch.long),
         }
 
@@ -93,7 +90,8 @@ class BertDataModule(pl.LightningDataModule):
         self.train_data_loader = None
         self.val_data_loader = None
         self.test_data_loader = None
-        self.input_embedding = None
+        self.MAX_LEN = 100
+        self.encoding = None
         self.tokenizer = None
         self.args = kwargs
         self.NUM_SAMPLES_COUNT = self.args["num_samples"]
@@ -183,7 +181,7 @@ class BertDataModule(pl.LightningDataModule):
         )
         return parser
 
-    def create_data_loader(self, df, tokenizer, batch_size):
+    def create_data_loader(self, df, tokenizer, max_len, batch_size):
         """
         Generic data loader function
 
@@ -195,7 +193,10 @@ class BertDataModule(pl.LightningDataModule):
         :return: Returns the constructed dataloader
         """
         ds = AGNewsDataset(
-            reviews=df.description.to_numpy(), targets=df.label.to_numpy(), tokenizer=tokenizer
+            reviews=df.description.to_numpy(),
+            targets=df.label.to_numpy(),
+            tokenizer=tokenizer,
+            max_length=max_len,
         )
 
         return DataLoader(
@@ -207,7 +208,7 @@ class BertDataModule(pl.LightningDataModule):
         :return: output - Train data loader for the given input
         """
         self.train_data_loader = self.create_data_loader(
-            self.df_train, self.tokenizer, self.args["batch_size"]
+            self.df_train, self.tokenizer, self.MAX_LEN, self.args["batch_size"]
         )
         return self.train_data_loader
 
@@ -216,7 +217,7 @@ class BertDataModule(pl.LightningDataModule):
         :return: output - Validation data loader for the given input
         """
         self.val_data_loader = self.create_data_loader(
-            self.df_val, self.tokenizer, self.args["batch_size"]
+            self.df_val, self.tokenizer, self.MAX_LEN, self.args["batch_size"]
         )
         return self.val_data_loader
 
@@ -225,7 +226,7 @@ class BertDataModule(pl.LightningDataModule):
         :return: output - Test data loader for the given input
         """
         self.test_data_loader = self.create_data_loader(
-            self.df_test, self.tokenizer, self.args["batch_size"]
+            self.df_test, self.tokenizer, self.MAX_LEN, self.args["batch_size"]
         )
         return self.test_data_loader
 
@@ -255,56 +256,16 @@ class BertNewsClassifier(pl.LightningModule):
 
         self.args = kwargs
 
-    def compute_bert_outputs(
-        self, model_bert, embedding_input, attention_mask=None, head_mask=None
-    ):
-        if attention_mask is None:
-            attention_mask = torch.ones(embedding_input.shape[0], embedding_input.shape[1]).to(
-                embedding_input
-            )
-
-        extended_attention_mask = attention_mask.unsqueeze(1).unsqueeze(2)
-
-        extended_attention_mask = extended_attention_mask.to(
-            dtype=next(model_bert.parameters()).dtype
-        )  # fp16 compatibility
-        extended_attention_mask = (1.0 - extended_attention_mask) * -10000.0
-
-        if head_mask is not None:
-            if head_mask.dim() == 1:
-                head_mask = head_mask.unsqueeze(0).unsqueeze(0).unsqueeze(-1).unsqueeze(-1)
-                head_mask = head_mask.expand(model_bert.config.num_hidden_layers, -1, -1, -1, -1)
-            elif head_mask.dim() == 2:
-                head_mask = (
-                    head_mask.unsqueeze(1).unsqueeze(-1).unsqueeze(-1)
-                )  # We can specify head_mask for each layer
-            head_mask = head_mask.to(
-                dtype=next(model_bert.parameters()).dtype
-            )  # switch to fload if need + fp16 compatibility
-        else:
-            head_mask = [None] * model_bert.config.num_hidden_layers
-
-        encoder_outputs = model_bert.encoder(
-            embedding_input, extended_attention_mask, head_mask=head_mask
-        )
-        sequence_output = encoder_outputs[0]
-        pooled_output = model_bert.pooler(sequence_output)
-        outputs = (
-            sequence_output,
-            pooled_output,
-        ) + encoder_outputs[1:]
-        return outputs
-
-    def forward(self, input_ids, attention_mask=None):
+    def forward(self, input_ids, attention_mask):
         """
         :param input_ids: Input data
         :param attention_maks: Attention mask value
 
         :return: output - Type of news for the given news snippet
         """
-        embedding_input = self.bert_model.embeddings(input_ids)
-        outputs = self.compute_bert_outputs(self.bert_model, embedding_input)
-        pooled_output = outputs[1]
+        pooled_output = self.bert_model(
+            input_ids=input_ids, attention_mask=attention_mask
+        ).pooler_output
         output = F.relu(self.fc1(pooled_output))
         output = self.drop(output)
         output = self.out(output)
@@ -339,10 +300,9 @@ class BertNewsClassifier(pl.LightningModule):
         :return: output - Training loss
         """
         input_ids = train_batch["input_ids"]
-        input_ids = input_ids.to(device)
+        attention_mask = train_batch["attention_mask"]
         targets = train_batch["targets"]
-        targets = targets.to(device)
-        output = self.forward(input_ids)
+        output = self.forward(input_ids, attention_mask)
         _, y_hat = torch.max(output, dim=1)
         loss = F.cross_entropy(output, targets)
         self.train_acc(y_hat, targets)
@@ -360,8 +320,9 @@ class BertNewsClassifier(pl.LightningModule):
         :return: output - Testing accuracy
         """
         input_ids = test_batch["input_ids"]
+        attention_mask = test_batch["attention_mask"]
         targets = test_batch["targets"]
-        output = self.forward(input_ids)
+        output = self.forward(input_ids, attention_mask)
         _, y_hat = torch.max(output, dim=1)
         self.test_acc(y_hat, targets)
         self.log("test_acc", self.test_acc.compute().cpu())
@@ -377,8 +338,9 @@ class BertNewsClassifier(pl.LightningModule):
         """
 
         input_ids = val_batch["input_ids"]
+        attention_mask = val_batch["attention_mask"]
         targets = val_batch["targets"]
-        output = self.forward(input_ids)
+        output = self.forward(input_ids, attention_mask)
         _, y_hat = torch.max(output, dim=1)
         loss = F.cross_entropy(output, targets)
         self.val_acc(y_hat, targets)
