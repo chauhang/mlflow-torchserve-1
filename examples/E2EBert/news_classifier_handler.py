@@ -146,18 +146,18 @@ class NewsClassifierHandler(BaseHandler):
         pre_pro = np.max(output.detach().numpy())
         return pre_pro
 
-    def summarize_attributions(self,attributions):
+    def summarize_attributions(self, attributions):
         """Summarises the attribution across multiple runs
         Args:
             attributions ([list): attributions from the Integrated Gradients
         Returns:
-            list : Returns the attributions after normalizing them. 
+            list : Returns the attributions after normalizing them.
         """
         attributions = attributions.sum(dim=-1).squeeze(0)
         attributions = attributions / torch.norm(attributions)
         return attributions
 
-    def explain_handle(self, model_wraper, text,target=1):
+    def explain_handle(self, model_wraper, text, target=1):
         """Captum explanations handler
         Args:
             data_preprocess (Torch Tensor): Preprocessed data to be used for captum
@@ -181,7 +181,7 @@ class NewsClassifierHandler(BaseHandler):
         tokens = tokenizer.convert_ids_to_tokens(input_ids[0].numpy().tolist())
         feature_imp_dict = {}
         feature_imp_dict["words"] = tokens
-        attributions_sum =self.summarize_attributions(attributions)
+        attributions_sum = self.summarize_attributions(attributions)
         feature_imp_dict["importances"] = attributions_sum.tolist()
         feature_imp_dict["delta"] = delta[0].tolist()
         self.add_attributions_to_visualizer(
