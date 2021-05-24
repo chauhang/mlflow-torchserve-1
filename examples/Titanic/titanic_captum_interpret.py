@@ -2,6 +2,7 @@
 Getting started with Captum - Titanic Data Analysis
 """
 # Initial imports
+import json
 import numpy as np
 import torch
 from captum.attr import IntegratedGradients
@@ -308,6 +309,18 @@ def neuron_conductance(test_input_tensor, neuron_selector=None):
     )
 
 
+def baseline_func(input):
+    return input * 0
+
+
+def transform(input):
+    return input
+
+
+def visualization(input):
+    return feature_names
+
+
 if __name__ == "__main__":
 
     with mlflow.start_run(run_name="Titanic_Captum_mlflow"):
@@ -347,7 +360,36 @@ if __name__ == "__main__":
             test_features,
             test_labels,
             feature_names,
-        ) = train()
+        ) = train(True)
+        #########################################################################
+        input_tensor = torch.from_numpy(test_features).type(torch.FloatTensor)
+        label_tensor = torch.from_numpy(test_labels)
+        dataset = torch.utils.data.TensorDataset(input_tensor, label_tensor)
+        dataloader = torch.utils.data.DataLoader(dataset, batch_size=50, shuffle=False)
+        import cloudpickle
+        model_pickle = cloudpickle.dumps(net)
+        loader_pickle = cloudpickle.dumps(dataloader)
+        feature_type = "TextFeature"
+        baseline = cloudpickle.dumps(baseline_func)
+        transform_pickle = cloudpickle.dumps(transform)
+        vis_pickle = cloudpickle.dumps(visualization)
+        classes = ['survived', 'not_survived']
+
+        json_content = {}
+        json_content["model"] = os.path.join(os.path.abspath(__file__), 'models/titanic_state_dict.pt')
+        json_content["model_class"] = cloudpickle.dumps(TitanicSimpleNNModel()).decode('ISO-8859-1')
+        json_content["loader"] = loader_pickle.decode('ISO-8859-1')
+        json_content["feature_type"] = feature_type
+        json_content["baseline"] = baseline.decode('ISO-8859-1')
+        json_content["transform"] = transform_pickle.decode('ISO-8859-1')
+        json_content["visualization_transform"] = vis_pickle.decode('ISO-8859-1')
+        json_content["classes"] = classes
+
+        with open("titanic_data.json", "w") as f:
+            json.dump(json_content, f)
+
+        #########################################################################
+
         train_input_tensor = train_step(train_features)
         test_input_tensor = test_step(test_features)
         feature_conductance(test_input_tensor)
