@@ -376,8 +376,8 @@ if __name__ == "__main__":
         classes = ['survived', 'not_survived']
 
         json_content = {}
-        json_content["model"] = os.path.join(os.path.abspath(__file__), 'models/titanic_state_dict.pt')
-        json_content["model_class"] = cloudpickle.dumps(TitanicSimpleNNModel()).decode('ISO-8859-1')
+        json_content["model"] = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                             'models/titanic_state_dict.pt')
         json_content["loader"] = loader_pickle.decode('ISO-8859-1')
         json_content["feature_type"] = feature_type
         json_content["baseline"] = baseline.decode('ISO-8859-1')
