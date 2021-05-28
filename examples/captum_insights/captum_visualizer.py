@@ -1,23 +1,8 @@
 import json
+from argparse import ArgumentParser
 from captum.insights import AttributionVisualizer, Batch
-from captum.insights.attr_vis.features import TextFeature
+from captum.insights.attr_vis.features import TextFeature, ImageFeature
 from captum.insights.attr_vis import server
-from captum.insights.attr_vis.config import (
-    ATTRIBUTION_METHOD_CONFIG,
-    ATTRIBUTION_NAMES_TO_METHODS,
-)
-
-class DummyVisualizer:
-    def get_insights_config(self):
-        print("config .....")
-        return {
-            "classes": ["classes"],
-            "methods": list(ATTRIBUTION_NAMES_TO_METHODS.keys()),
-            "method_arguments": server.namedtuple_to_dict(
-                {k: v.params for (k, v) in ATTRIBUTION_METHOD_CONFIG.items()}
-            ),
-            "selected_method": "self._config.attribution_method",
-        }
 
 
 def get_class_from_module_path(module_path):
@@ -40,45 +25,94 @@ def get_class_from_module_path(module_path):
     return model_class
 
 
-@server.app.route("/visualizer", methods=["POST"])
-def change_visualizer():
+def get_visualizer(json_path, model_file_path, wrapper_file_path=None):
     import pickle
     import torch
-    from flask import request
-    inp = request.get_json(force=True)
-    f = open(inp["visualizer_json_path"], "r")
+    f = open(json_path, "r")
     data = json.load(f)
-    model_class = get_class_from_module_path(inp["model_file_path"])
+    model_class = get_class_from_module_path(model_file_path)
     net = model_class()
     net.load_state_dict(torch.load(data["model"]))
+    if wrapper_file_path:
+        model_class1 = get_class_from_module_path(wrapper_file_path)
+        model_wrapper = model_class1(net)
+        net = model_wrapper
+        net.eval()
     baseline = pickle.loads(bytes(data["baseline"], "ISO-8859-1"))
     transform = pickle.loads(bytes(data["transform"], "ISO-8859-1"))
-    vis_col = pickle.loads(bytes(data["visualization_transform"], "ISO-8859-1"))
+    vis_col = pickle.loads(bytes(data["visualization_transform"], "ISO-8859-1")) \
+        if "visualization_transform" in data else None
 
     def formatted_data_iter():
         dataloader = iter(pickle.loads(bytes(data["loader"], "ISO-8859-1")))
         while True:
-            images, labels = next(dataloader)
-            yield Batch(inputs=images, labels=labels)
+            inp_data = next(dataloader)
+            if isinstance(inp_data, list):
+                yield Batch(inputs=inp_data[0], labels=inp_data[1])
+            else:
+                yield Batch(inputs=inp_data['input_ids'],
+                            labels=inp_data['targets']
+                            )
 
-    server.visualizer = AttributionVisualizer(
+    feature = None
+    if data["feature_type"] == "TextFeature":
+        feature = TextFeature(
+            "Text columns",
+            baseline_transforms=[baseline],
+            input_transforms=[transform],
+            visualization_transform=vis_col
+        )
+    else:
+        feature = ImageFeature(
+            "Photo",
+            baseline_transforms=[baseline],
+            input_transforms=[transform],
+        )
+    return AttributionVisualizer(
         models=[net],
         score_func=lambda o: torch.nn.functional.softmax(o, 1),
         classes=data["classes"],
-        features=[
-            TextFeature(
-                "Text columns",
-                baseline_transforms=[baseline],
-                input_transforms=[transform],
-                visualization_transform=vis_col
-            )
-        ],
+        features=[feature],
         dataset=formatted_data_iter(),
     )
+
+
+@server.app.route("/visualizer", methods=["POST"])
+def change_visualizer():
+    from flask import request
+    inp = request.get_json(force=True)
+    server.visualizer = get_visualizer(json_path=inp["visualizer_json_path"],
+                                       model_file_path=inp["model_file_path"],
+                                       wrapper_file_path=inp["model_wrapper_file"]
+                                       if "model_wrapper_file" in inp else None)
     server.visualizer.get_insights_config()
     return "Success"
 
 
 if __name__ == "__main__":
-    server.visualizer = DummyVisualizer()
+    parser = ArgumentParser(description="Captum insights")
+    parser.add_argument(
+        "--visualizer_json_path",
+        type=str,
+        required=True,
+        help="Path to the generated json file as string",
+    )
+    parser.add_argument(
+        "--model_file_path",
+        type=str,
+        required=True,
+        help="Full path to the model architecture class file.",
+    )
+    parser.add_argument(
+        "--model_wrapper_file",
+        type=str,
+        default=None,
+        help="Full path to the model wrapper class file.",
+    )
+    args = parser.parse_args()
+
+    server.visualizer = get_visualizer(json_path=args.visualizer_json_path,
+                                       model_file_path=args.model_file_path,
+                                       wrapper_file_path=args.model_wrapper_file
+                                       if "model_wrapper_file" in args else None)
     server.run_app(debug=True)

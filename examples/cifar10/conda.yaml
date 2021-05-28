@@ -1,0 +1,14 @@
+channels:
+- defaults
+- conda-forge
+- pytorch
+dependencies:
+- python=3.8.2
+- pytorch>=1.6.0
+- torchvision
+- mlflow
+- pip
+- pip:
+  - scikit-learn
+  - pytorch-lightning>=1.2.3
+
