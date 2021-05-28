@@ -7,10 +7,8 @@ entry_points:
     parameters:
       max_epochs: {type: int, default: 5}
       lr: {type: float, default: 0.01}
-      use_pretrained_model: {type: bool, default: True}
 
     command: |
           python cifar10_classifier.py \
             --max_epochs {max_epochs} \
-            --lr {lr} \
-            --use_pretrained_model {use_pretrained_model}
+            --lr {lr}

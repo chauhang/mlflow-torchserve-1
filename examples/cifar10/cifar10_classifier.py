@@ -90,7 +90,7 @@ class Cifar10Classifier(nn.Module):
                         running_loss = 0.0
 
             print('Finished Training')
-            torch.save(net.state_dict(), 'models/cifar_torchvision.pt')
+            torch.save(net.state_dict(), 'cifar_torchvision.pt')
         return net
 
 
@@ -100,8 +100,8 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--use_pretrained_model",
+        type=bool,
         default=False,
-        metavar="N",
         help="Use pretrained model or train from the scratch",
     )
 
