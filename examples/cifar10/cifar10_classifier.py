@@ -7,30 +7,15 @@ import torch.nn as nn
 import torch.optim as optim
 
 import torch
-import torchvision
 import torchvision.transforms as transforms
+
+from cifar10_data_module import Cifar10DataModule
 
 classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
 
 def baseline_func(input):
     return input * 0
-
-
-def setup():
-    transform = transforms.Compose(
-        [transforms.ToTensor(),
-         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
-    trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
-                                            download=True, transform=transform)
-    trainloader = torch.utils.data.DataLoader(trainset, batch_size=4,
-                                              shuffle=True, num_workers=2)
-
-    testset = torchvision.datasets.CIFAR10(root='./data', train=False,
-                                           download=False, transform=transform)
-    testloader = torch.utils.data.DataLoader(testset, batch_size=4,
-                                             shuffle=False, num_workers=2)
-    return trainloader, testloader
 
 
 class Cifar10Classifier(nn.Module):
@@ -125,14 +110,14 @@ if __name__ == "__main__":
     dict_args = vars(args)
 
     mlflow.autolog()
+    dm = Cifar10DataModule()
 
-    trainloader, testloader = setup()
+    trainloader, testloader = dm.setup()
 
     net = Cifar10Classifier.training(trainloader)
     #########################################################################
     import cloudpickle
     model_pickle = cloudpickle.dumps(net)
-    loader_pickle = cloudpickle.dumps(testloader)
     feature_type = "ImageFeature"
     baseline = cloudpickle.dumps(baseline_func)
     transform_pickle = cloudpickle.dumps(transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)))
@@ -140,7 +125,6 @@ if __name__ == "__main__":
     json_content = {}
     json_content["model"] = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                          'cifar_torchvision.pt')
-    json_content["loader"] = loader_pickle.decode('ISO-8859-1')
     json_content["feature_type"] = feature_type
     json_content["baseline"] = baseline.decode('ISO-8859-1')
     json_content["transform"] = transform_pickle.decode('ISO-8859-1')
