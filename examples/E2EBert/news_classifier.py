@@ -476,8 +476,6 @@ if __name__ == "__main__":
     #########################################################################
     import cloudpickle
     import json
-    test_loader = dm.test_dataloader()
-    loader_pickle = cloudpickle.dumps(test_loader)
     feature_type = "TextFeature"
     baseline = cloudpickle.dumps(baseline_func)
     transform_pickle = cloudpickle.dumps(transform)
@@ -486,7 +484,6 @@ if __name__ == "__main__":
     json_content = {}
     json_content["model"] = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                              'models/state_dict.pth')
-    json_content["loader"] = loader_pickle.decode('ISO-8859-1')
     json_content["feature_type"] = feature_type
     json_content["baseline"] = baseline.decode('ISO-8859-1')
     json_content["transform"] = transform_pickle.decode('ISO-8859-1')
