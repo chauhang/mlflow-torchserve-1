@@ -14,10 +14,6 @@ from cifar10_data_module import Cifar10DataModule
 classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
 
-def baseline_func(input):
-    return input * 0
-
-
 class Cifar10Classifier(nn.Module):
     def __init__(self):
         super(Cifar10Classifier, self).__init__()
@@ -78,6 +74,10 @@ class Cifar10Classifier(nn.Module):
             torch.save(net.state_dict(), 'cifar_torchvision.pt')
         return net
 
+    @staticmethod
+    def baseline_func(input):
+        return input * 0
+
 
 if __name__ == "__main__":
 
@@ -115,20 +115,3 @@ if __name__ == "__main__":
     trainloader, testloader = dm.setup()
 
     net = Cifar10Classifier.training(trainloader)
-    #########################################################################
-    import cloudpickle
-    model_pickle = cloudpickle.dumps(net)
-    feature_type = "ImageFeature"
-    baseline = cloudpickle.dumps(baseline_func)
-    transform_pickle = cloudpickle.dumps(transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)))
-
-    json_content = {}
-    json_content["model"] = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                         'cifar_torchvision.pt')
-    json_content["feature_type"] = feature_type
-    json_content["baseline"] = baseline.decode('ISO-8859-1')
-    json_content["transform"] = transform_pickle.decode('ISO-8859-1')
-    json_content["classes"] = classes
-
-    with open("cifar10_data.json", "w") as f:
-        json.dump(json_content, f)
