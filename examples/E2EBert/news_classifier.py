@@ -27,10 +27,6 @@ device = torch.device("cuda:id" if torch.cuda.is_available() else "cpu")
 # tokenizer = BertTokenizer("bert_base_uncased_vocab.txt")
 
 
-def baseline_func(input):
-    return input * 0
-
-
 class AGNewsDataset(Dataset):
     def __init__(self, reviews, targets, tokenizer, max_length):
         """
@@ -460,37 +456,3 @@ if __name__ == "__main__":
     if trainer.global_rank == 0:
         # with mlflow.start_run() as run:
         mlflow.pytorch.save_state_dict(trainer.get_model().state_dict(), "models/")
-
-    tokenizer = dm.tokenizer
-
-    def itos(input_ids):
-        tokens_test = tokenizer.convert_ids_to_tokens(input_ids[0].numpy().tolist())
-        tokens_test = [i for i in tokens_test if i not in ["[CLS]", "[PAD]", "[SEP]"]]
-        return tokens_test
-
-    def transform(input):
-        input = input.unsqueeze(0)
-        input_embedding_test = model.bert_model.embeddings(input)
-        return input_embedding_test.squeeze(0)
-
-    #########################################################################
-    import cloudpickle
-    import json
-    feature_type = "TextFeature"
-    baseline = cloudpickle.dumps(baseline_func)
-    transform_pickle = cloudpickle.dumps(transform)
-    vis_pickle = cloudpickle.dumps(itos)
-
-    json_content = {}
-    json_content["model"] = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                             'models/state_dict.pth')
-    json_content["feature_type"] = feature_type
-    json_content["baseline"] = baseline.decode('ISO-8859-1')
-    json_content["transform"] = transform_pickle.decode('ISO-8859-1')
-    json_content["visualization_transform"] = vis_pickle.decode('ISO-8859-1')
-    json_content["classes"] = ["World", "Sports", "Business", "Sci/Tech"]
-
-    with open("bert_data.json", "w") as f:
-        json.dump(json_content, f)
-
-    #########################################################################

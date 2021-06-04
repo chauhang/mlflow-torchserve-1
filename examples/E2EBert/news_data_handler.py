@@ -1,14 +1,12 @@
 import os
 import pandas as pd
-import pytorch_lightning as pl
 import requests
 import torch
 from pytorch_lightning import seed_everything
 from sklearn.model_selection import train_test_split
 from torch.utils.data import Dataset, DataLoader
 import torchtext.datasets as td
-from transformers import BertTokenizer
-from argparse import ArgumentParser
+from transformers import BertTokenizer, BertModel
 
 
 class AGNewsDataset(Dataset):
@@ -63,38 +61,22 @@ class AGNewsDataset(Dataset):
         }
 
 
-class BertDataModule(pl.LightningDataModule):
-    def __init__(self, **kwargs):
-        """
-        Initialization of inherited lightning data module
-        """
-        super(BertDataModule, self).__init__()
-        self.PRE_TRAINED_MODEL_NAME = "bert-base-uncased"
-        self.df_train = None
-        self.df_val = None
-        self.df_test = None
-        self.train_data_loader = None
-        self.val_data_loader = None
-        self.test_data_loader = None
-        self.input_embedding = None
-        self.MAX_LEN = 100
-        self.tokenizer = None
-        self.args = kwargs
-        self.NUM_SAMPLES_COUNT = 150
-        self.VOCAB_FILE_URL = "https://s3.amazonaws.com/models.huggingface.co/bert/bert-base-uncased-vocab.txt"
-        self.VOCAB_FILE = "bert_base_uncased_vocab.txt"
+class BertDataHandler:
+    tokenizer = None
+    NUM_SAMPLES_COUNT = 1500
+    VOCAB_FILE_URL = "https://s3.amazonaws.com/models.huggingface.co/bert/bert-base-uncased-vocab.txt"
+    VOCAB_FILE = "bert_base_uncased_vocab.txt"
+    MAX_LEN = 100
+    PRE_TRAINED_MODEL_NAME = "bert-base-uncased"
+    bert_model = BertModel.from_pretrained(PRE_TRAINED_MODEL_NAME)
 
     @staticmethod
     def process_label(rating):
         rating = int(rating)
         return rating - 1
 
-    def prepare_data(self):
-        """
-        Implementation of abstract class
-        """
-
-    def setup(self, stage=None):
+    @staticmethod
+    def setup():
         """
         Downloads the data, parse it and split the data into train, test, validation data
 
@@ -113,61 +95,36 @@ class BertDataModule(pl.LightningDataModule):
 
         df.columns = ["label", "title", "description"]
         df.sample(frac=1)
-        df = df.iloc[: self.NUM_SAMPLES_COUNT]
+        df = df.iloc[: BertDataHandler.NUM_SAMPLES_COUNT]
 
-        df["label"] = df.label.apply(self.process_label)
+        df["label"] = df.label.apply(BertDataHandler.process_label)
 
-        if not os.path.isfile(self.VOCAB_FILE):
-            filePointer = requests.get(self.VOCAB_FILE_URL, allow_redirects=True)
+        if not os.path.isfile(BertDataHandler.VOCAB_FILE):
+            filePointer = requests.get(BertDataHandler.VOCAB_FILE_URL, allow_redirects=True)
             if filePointer.ok:
-                with open(self.VOCAB_FILE, "wb") as f:
+                with open(BertDataHandler.VOCAB_FILE, "wb") as f:
                     f.write(filePointer.content)
             else:
                 raise RuntimeError("Error in fetching the vocab file")
 
-        self.tokenizer = BertTokenizer(self.VOCAB_FILE)
+        BertDataHandler.tokenizer = BertTokenizer(BertDataHandler.VOCAB_FILE)
+
+        for param in BertDataHandler.bert_model.parameters():
+            param.requires_grad = False
 
         RANDOM_SEED = 42
         seed_everything(RANDOM_SEED)
 
         df_train, df_test = train_test_split(
-            df, test_size=0.2, random_state=RANDOM_SEED, stratify=df["label"]
-        )
-        df_train, df_val = train_test_split(
-            df_train, test_size=0.25, random_state=RANDOM_SEED, stratify=df_train["label"]
+            df, test_size=0.1, random_state=RANDOM_SEED, stratify=df["label"]
         )
 
-        self.df_train = df_train
-        self.df_test = df_test
-        self.df_val = df_val
+        return BertDataHandler.create_data_loader(
+            df_test, BertDataHandler.tokenizer, BertDataHandler.MAX_LEN, 4
+        )
 
     @staticmethod
-    def add_model_specific_args(parent_parser):
-        """
-        Returns the review text and the targets of the specified item
-
-        :param parent_parser: Application specific parser
-
-        :return: Returns the augmented arugument parser
-        """
-        parser = ArgumentParser(parents=[parent_parser], add_help=False)
-        parser.add_argument(
-            "--batch-size",
-            type=int,
-            default=16,
-            metavar="N",
-            help="input batch size for training (default: 16)",
-        )
-        parser.add_argument(
-            "--num-workers",
-            type=int,
-            default=3,
-            metavar="N",
-            help="number of workers (default: 0)",
-        )
-        return parser
-
-    def create_data_loader(self, df, tokenizer, max_len, batch_size):
+    def create_data_loader(df, tokenizer, max_len, batch_size):
         """
         Generic data loader function
 
@@ -189,39 +146,28 @@ class BertDataModule(pl.LightningDataModule):
             ds, batch_size=batch_size, num_workers=3
         )
 
-    def train_dataloader(self):
-        """
-        :return: output - Train data loader for the given input
-        """
-        self.train_data_loader = self.create_data_loader(
-            self.df_train, self.tokenizer, self.MAX_LEN, 16
-        )
-        return self.train_data_loader
-
-    def val_dataloader(self):
-        """
-        :return: output - Validation data loader for the given input
-        """
-        self.val_data_loader = self.create_data_loader(
-            self.df_val, self.tokenizer, self.MAX_LEN, 16
-        )
-        return self.val_data_loader
-
-    def test_dataloader(self):
-        """
-        :return: output - Test data loader for the given input
-        """
-        self.test_data_loader = self.create_data_loader(
-            self.df_test, self.tokenizer, self.MAX_LEN, 16
-        )
-        return self.test_data_loader
-
-    def get_batch_data(self):
+    @staticmethod
+    def get_batch_data():
         from captum.insights import Batch
-        self.setup()
-        dataloader = iter(self.test_dataloader())
+        dataloader = iter(BertDataHandler.setup())
         while True:
             inp_data = next(dataloader)
             yield Batch(inputs=inp_data['input_ids'],
                         labels=inp_data['targets']
                         )
+
+    @staticmethod
+    def visualization(input_ids):
+        tokens_test = BertDataHandler.tokenizer.convert_ids_to_tokens(input_ids[0].numpy().tolist())
+        tokens_test = [i for i in tokens_test if i not in ["[CLS]", "[PAD]", "[SEP]"]]
+        return tokens_test
+
+    @staticmethod
+    def transform(input):
+        input = input.unsqueeze(0)
+        input_embedding_test = BertDataHandler.bert_model.embeddings(input)
+        return input_embedding_test.squeeze(0)
+
+    @staticmethod
+    def baseline_func(input):
+        return input * 0
