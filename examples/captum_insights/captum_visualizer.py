@@ -62,14 +62,19 @@ def get_visualizer(visualizer_json_path):
         else:
             raise Exception("Visualization function is not found in specified module")
 
+    iter_args = None
     if "data_batch_iterator" in data:
         iterator_class = get_class_from_module_path(data["data_batch_iterator"]["module_path"])
         if hasattr(iterator_class, data["data_batch_iterator"]["function_name"]):
             get_batch_data = getattr(iterator_class, data["data_batch_iterator"]["function_name"])
         else:
             raise Exception("Data iterator function is not found in specified module")
+        if "args" in data["data_batch_iterator"]:
+            iter_args = data["data_batch_iterator"]["args"]
     else:
         raise Exception("Transform function is not provided")
+
+    data_iterator = get_batch_data(**iter_args) if iter_args else get_batch_data()
 
     feature = None
     if data["feature_type"] == "TextFeature":
@@ -90,7 +95,7 @@ def get_visualizer(visualizer_json_path):
         score_func=lambda o: torch.nn.functional.softmax(o, 1),
         classes=data["classes"],
         features=[feature],
-        dataset=get_batch_data(),
+        dataset=data_iterator,
     )
 
 

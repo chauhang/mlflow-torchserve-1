@@ -76,20 +76,24 @@ class BertDataHandler:
         return rating - 1
 
     @staticmethod
-    def setup():
+    def setup(data_path=None):
         """
         Downloads the data, parse it and split the data into train, test, validation data
 
         :param stage: Stage - training or testing
         """
+        if not data_path:
+            path = os.path.join(os.getcwd(), "data")
+        else:
+            path = data_path
         # reading  the input
-        td.AG_NEWS(root="data", split=("train", "test"))
-        extracted_files = os.listdir("data")
+        td.AG_NEWS(root=path, split=("train", "test"))
+        extracted_files = os.listdir(path)
 
         train_csv_path = None
         for fname in extracted_files:
             if fname.endswith("train.csv"):
-                train_csv_path = os.path.join(os.getcwd(), "data", fname)
+                train_csv_path = os.path.join(path, fname)
 
         df = pd.read_csv(train_csv_path)
 
@@ -147,9 +151,9 @@ class BertDataHandler:
         )
 
     @staticmethod
-    def get_batch_data():
+    def get_batch_data(data_path=None):
         from captum.insights import Batch
-        dataloader = iter(BertDataHandler.setup())
+        dataloader = iter(BertDataHandler.setup(data_path))
         while True:
             inp_data = next(dataloader)
             yield Batch(inputs=inp_data['input_ids'],
