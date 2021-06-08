@@ -12,7 +12,10 @@
 	},
     "data_batch_iterator": {
         "module_path": "/home/kasirajan/Work/Facebook/Source/mlflow-torchserve-1/examples/E2EBert/news_data_handler.py",
-        "function_name": "get_batch_data"
+        "function_name": "get_batch_data",
+		"args": {
+			"data_path": "/home/kasirajan/Work/Facebook/Source/mlflow-torchserve-1/examples/E2EBert/data"
+		}
     },
 	"visualization": {
         "module_path": "/home/kasirajan/Work/Facebook/Source/mlflow-torchserve-1/examples/E2EBert/news_data_handler.py",
