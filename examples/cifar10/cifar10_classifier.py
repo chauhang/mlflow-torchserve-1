@@ -71,12 +71,26 @@ class Cifar10Classifier(nn.Module):
                         running_loss = 0.0
 
             print('Finished Training')
-            torch.save(net.state_dict(), 'cifar_torchvision.pt')
+            state_dict = net.state_dict()
+            state_dict["visualization_data"] = get_data_for_insights(testloader, 3)
+            torch.save(state_dict, 'cifar_torchvision.pt')
         return net
 
     @staticmethod
     def baseline_func(input):
         return input * 0
+
+
+def get_data_for_insights(loader, count=4):
+    data = []
+    loader = iter(loader)
+    for i in range(count):
+        try:
+            d = next(loader)
+            data.append([d[0], d[1]])
+        except StopIteration:
+            break
+    return data
 
 
 if __name__ == "__main__":

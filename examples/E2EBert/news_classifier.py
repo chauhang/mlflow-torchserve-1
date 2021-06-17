@@ -407,6 +407,18 @@ class BertNewsClassifier(pl.LightningModule):
         return [optimizer], [scheduler]
 
 
+def get_data_for_insights(loader, count=4):
+    data = []
+    loader = iter(loader)
+    for i in range(count):
+        try:
+            d = next(loader)
+            data.append([d["input_ids"], d["targets"]])
+        except StopIteration:
+            break
+    return data
+
+
 if __name__ == "__main__":
 
     parser = ArgumentParser(description="Bert-News Classifier Example")
@@ -453,6 +465,8 @@ if __name__ == "__main__":
     )
     trainer.fit(model, dm)
     trainer.test()
+    st = trainer.get_model().state_dict()
+    st["visualization_data"] = get_data_for_insights(dm.test_dataloader(), count=3)
     if trainer.global_rank == 0:
         # with mlflow.start_run() as run:
-        mlflow.pytorch.save_state_dict(trainer.get_model().state_dict(), "models/")
+        mlflow.pytorch.save_state_dict(st, "models/")

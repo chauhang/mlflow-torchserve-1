@@ -32,7 +32,10 @@ def get_visualizer(visualizer_json_path):
     model_file_path = data["model_file_path"]
     model_class = get_class_from_module_path(model_file_path)
     net = model_class()
-    net.load_state_dict(torch.load(data["model"]))
+    state_dict = torch.load(data["model"])
+    loader = state_dict['visualization_data']
+    del state_dict["visualization_data"]
+    net.load_state_dict(state_dict)
     if "model_wrapper_file_path" in data:
         model_class1 = get_class_from_module_path(data["model_wrapper_file_path"])
         model_wrapper = model_class1(net)
@@ -62,19 +65,13 @@ def get_visualizer(visualizer_json_path):
         else:
             raise Exception("Visualization function is not found in specified module")
 
-    iter_args = None
-    if "data_batch_iterator" in data:
-        iterator_class = get_class_from_module_path(data["data_batch_iterator"]["module_path"])
-        if hasattr(iterator_class, data["data_batch_iterator"]["function_name"]):
-            get_batch_data = getattr(iterator_class, data["data_batch_iterator"]["function_name"])
-        else:
-            raise Exception("Data iterator function is not found in specified module")
-        if "args" in data["data_batch_iterator"]:
-            iter_args = data["data_batch_iterator"]["args"]
-    else:
-        raise Exception("Transform function is not provided")
-
-    data_iterator = get_batch_data(**iter_args) if iter_args else get_batch_data()
+    def get_batch_data():
+        from captum.insights import Batch
+        print("Length of the loader: ", str(len(loader)))
+        for data in loader:
+            yield Batch(inputs=data[0],
+                        labels=data[1]
+                        )
 
     feature = None
     if data["feature_type"] == "TextFeature":
@@ -95,7 +92,7 @@ def get_visualizer(visualizer_json_path):
         score_func=lambda o: torch.nn.functional.softmax(o, 1),
         classes=data["classes"],
         features=[feature],
-        dataset=data_iterator,
+        dataset=get_batch_data(),
     )
 
 
